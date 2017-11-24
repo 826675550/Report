@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.baidu.repository.RoleRepository">
+    <resultMap id="rm1" type="com.baidu.domain.Role">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+    </resultMap>
+
+    <select id="getAll" resultMap="rm1">
+        SELECT * FROM T_ROLE;
+    </select>
+
+    <insert id="addRole" parameterType="com.baidu.domain.Role">
+     insert into T_ROLE (`name`) values (#{name});
+   </insert>
+    <delete id="delRole" parameterType="java.lang.Integer">
+        DELETE FROM T_ROLE WHERE id=#{id};
+    </delete>
+    <update id="editRole" parameterType="com.baidu.domain.Role">
+        UPDATE T_ROLE
+        <set>
+            `name`=#{name}
+        </set>
+        WHERE id=#{id}
+    </update>
+
+</mapper>

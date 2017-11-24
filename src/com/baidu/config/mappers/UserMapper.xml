@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.baidu.repository.UserRepository">
+    <resultMap id="BaseResultMap" type="com.baidu.domain.User">
+        <result property="id" column="id"/>
+        <result property="email" column="email"/>
+        <result property="password" column="password"/>
+        <result property="identityFlag" column="identityFlag"/>
+    </resultMap>
+
+    <resultMap id="UserBase" type="com.baidu.domain.User">
+        <result property="id" column="uid"/>
+        <result property="email" column="email"/>
+        <result property="password" column="password"/>
+        <result property="phone" column="mobilephone"/>
+        <result property="identityFlag" column="identityFlag"/>
+
+        <result property="operacteId" column="operacteId"/>
+        <result property="createTime" column="createTime"/>
+        <result property="status" column="status"/>
+        <association property="role"
+                     javaType="com.baidu.domain.Role">
+            <id column="rid" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+
+    </resultMap>
+    <select id="getAll" resultMap="UserBase">
+      SELECT
+T_USER.id uid,T_USER.identityFlag,T_USER.email,T_USER.operacteId,T_USER.createTime,T_USER.status,T_ROLE.id rid,T_ROLE.name,T_USER.mobilephone,T_USER.password
+FROM T_USER LEFT JOIN
+T_ROLE  ON T_USER.identityFlag=T_ROLE.id
+    </select>
+    <sql id="Base_Column_List">
+        id, email, password,identityFlag
+    </sql>
+
+    <select id="selectUserByEmail" parameterType="String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from T_USER where email=#{email}
+    </select>
+
+    <select id="selectUserByPhone" parameterType="String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from T_USER where mobilephone=#{phone}
+    </select>
+
+    <select id="findRoles" parameterType="String" resultType="String">
+        select r.roleName from T_USER u,T_ROLE r where u.identityFlag=r.id and u.email=#{email}
+    </select>
+
+    <select id="findPermissions" parameterType="String" resultType="String">
+        select identityFlag
+        from T_USER where email=#{email}
+    </select>
+
+    <delete id="delUser" parameterType="java.lang.Integer">
+        DELETE FROM t_user WHERE id=#{id};
+    </delete>
+    <insert id="addUser" parameterType="com.baidu.domain.User">
+        INSERT INTO `t_user` (`identityFlag`, `email`, `mobilephone`, `password`, `operacteId`, `createTime`, `status`)
+        VALUES (#{identityFlag}, #{email}, #{phone}, #{password},#{operacteId}, #{createTime},#{status})
+    </insert>
+
+    <update id="editUser" parameterType="com.baidu.domain.User">
+        UPDATE T_USER
+        <set>
+            status=#{status},
+            email= #{email},
+            createTime=#{createTime},
+            operacteId=#{operacteId},
+            identityFlag=#{identityFlag},
+            password=#{password},
+            mobilephone=#{phone}
+        </set>
+        WHERE id=#{id}
+    </update>
+    <update id="upRole" parameterType="com.baidu.domain.User">
+        UPDATE T_USER
+        <set>
+            identityFlag=#{identityFlag}
+        </set>
+        WHERE id=#{id}
+    </update>
+
+</mapper>
