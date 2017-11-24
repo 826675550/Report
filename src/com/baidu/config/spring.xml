@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context.xsd
+http://www.springframework.org/schema/aop
+http://www.springframework.org/schema/aop/spring-aop.xsd
+">
+
+    <!--spring.xml中不实例化带有Controller注解的类-->
+    <context:component-scan base-package="com.baidu">
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+
+
+    <bean id="dataSource" class="com.baidu.repository.DynamicDataSource">
+        <property name="targetDataSources">
+            <map key-type="java.lang.String">
+                <entry key="ds1" value-ref="ds1" />
+                <entry key="ds2" value-ref="ds2" />
+            </map>
+        </property>
+        <property name="defaultTargetDataSource" ref="ds1" />
+    </bean>
+    <bean id="ds1"
+          class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="username" value="root"/>
+        <property name="password" value="root"/>
+        <property name="url" value="jdbc:mysql:///test"/>
+        <property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+    </bean>
+    <!--<bean id="ds1" class="com.alibaba.druid.pool.DruidDataSource"-->
+          <!--init-method="init" destroy-method="close">-->
+        <!--<property name="driverClassName" value="oracle.jdbc.OracleDriver" />-->
+        <!--<property name="url" value="jdbc:oracle:thin:@localhost:1521:test" />-->
+        <!--<property name="username" value="sys" />-->
+        <!--<property name="password" value="123456" />-->
+        <!--&lt;!&ndash; 配置监控统计拦截的filters，去掉后监控界面sql无法统计 &ndash;&gt;-->
+        <!--<property name="filters" value="stat" />-->
+    <!--</bean>-->
+    <bean id="ds2"
+          class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="username" value="root"/>
+        <property name="password" value="199741"/>
+        <property name="url" value="jdbc:mysql://192.168.10.145:3306/abc"/>
+        <property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+    </bean>
+    <bean id="sqlSessionFactoryBean1"
+          class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="ds1"/>
+        <property name="mapperLocations"
+                  value="classpath:com/baidu/config/mappers/*.xml"/>
+    </bean>
+    <bean id="sqlSessionFactoryBean2"
+          class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="ds2"/>
+        <property name="mapperLocations"
+                  value="classpath:com/baidu/config/mappers/*.xml"/>
+    </bean>
+    <!-- 配置自定义的SqlSessionTemplate模板，注入相关配置 -->
+    <bean id="sqlSessionTemplate" class="com.baidu.repository.CustomSqlSessionTemplate">
+        <constructor-arg ref="sqlSessionFactoryBean1" />
+        <property name="targetSqlSessionFactorys">
+            <map>
+                <entry value-ref="sqlSessionFactoryBean1" key="ds1"/>
+                <entry value-ref="sqlSessionFactoryBean2" key="ds2"/>
+            </map>
+        </property>
+    </bean>
+
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.baidu.repository"/>
+        <property name="sqlSessionTemplateBeanName" value="sqlSessionTemplate"/>
+        <!--<property name="markerInterface" value="com.hoo.framework.mybatis.SqlMapper"/>-->
+    </bean>
+
+    <bean id="myRealm" class="com.baidu.util.MyRealm"/>
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="realm" ref="myRealm"/>
+    </bean>
+
+    <!-- Shiro过滤器 核心-->
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <!-- Shiro的核心安全接口,这个属性是必须的 -->
+        <property name="securityManager" ref="securityManager"/>
+        <!-- 身份认证失败，则跳转到登录页面的配置 -->
+        <property name="loginUrl" value="/login.jsp"/>
+        <!-- 权限认证失败，则跳转到指定页面 -->
+        <property name="unauthorizedUrl" value="/nopower.jsp"/>
+        <!-- Shiro连接约束配置,即过滤链的定义 -->
+        <property name="filterChainDefinitions">
+            <value>
+                <!--anon 表示匿名访问，不需要认证以及授权-->
+                /index.jsp=anon
+
+                <!--authc表示需要认证 没有进行身份认证是不能进行访问的-->
+                /admin*=authc
+
+
+                /student=roles[teacher]
+                /teacher=perms["user:create"]
+            </value>
+        </property>
+    </bean>
+
+    <!-- 保证实现了Shiro内部lifecycle函数的bean执行 -->
+    <bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor"/>
+
+    <!-- 开启Shiro注解 -->
+    <bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"
+          depends-on="lifecycleBeanPostProcessor"/>
+    <bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+        <property name="securityManager" ref="securityManager"/>
+    </bean>
+
+
+
+
+</beans>
